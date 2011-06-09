@@ -1,6 +1,8 @@
 = mht
 
-Description goes here.
+mht is for building mhtml.
+mht is known as mhtml that internet explorer's web page archive.
+this package can make mhtml from URI
 
 == Contributing to mht
  
