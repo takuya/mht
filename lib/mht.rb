@@ -1,24 +1,29 @@
 # generate mhtml file 
 # == uri target uri
 # return mhtml file
-#    mhtml = Mhtml.generate(uri)
-#    open("output.mht", "w+"){|f| f.write mhtml }
+#mhtml = MHT::MhtmlGenerator.generate("https://rubygems.org/")
+#open("output.mht", "w+"){|f| f.write mhtml }
 module MHT
+require 'rubygems'
 require 'nokogiri'
 require 'open-uri'
 require 'digest/md5'
 require 'stringio'
+require 'base64'
 require 'thread'
 
-def generate(uri)
-  generateror = Mhtml.new
-  return generateror.convert(uri)
-end
-class Mhtml
-  
+# generate mhtml file 
+# == uri target uri
+# return mhtml file
+#mhtml = MHT::MhtmlGenerator.generate("https://rubygems.org/")
+#open("output.mht", "w+"){|f| f.write mhtml }
+class MhtmlGenerator
+  def MhtmlGenerator.generate(uri)
+    generateror = MhtmlGenerator.new
+    return generateror.convert(uri)
+  end
   def initialize
     @contents = {}
-    @mail = TMail::Mail.new
     @src = StringIO.new
     @boundary = "mimepart_#{Digest::MD5.hexdigest(Time.now.to_s)}"
     @threads =[]
@@ -77,7 +82,6 @@ class Mhtml
       @src.rewind
       return @src.read
   end
-  private
   def start_download_thread(num=5)
     num.times{
       t = Thread.start{
