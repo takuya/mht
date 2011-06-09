@@ -1,7 +1,8 @@
 require 'helper'
 
 class TestMht < Test::Unit::TestCase
-  should "probably rename this file and start testing for real" do
-    flunk "hey buddy, you should probably rename this file and start testing for real"
+  def test_generate
+    mhtml = MHT::MhtmlGenerator.generate("https://rubygems.org/")
+    assert mhtml != ""
   end
 end
