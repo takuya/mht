@@ -1,3 +1,4 @@
+# encoding: utf-8
 # generate mhtml file 
 # == uri target uri
 # return mhtml file
@@ -18,6 +19,7 @@ require 'thread'
 #mhtml = MHT::MhtmlGenerator.generate("https://rubygems.org/")
 #open("output.mht", "w+"){|f| f.write mhtml }
 class MhtmlGenerator
+  attr_accessor :conf
   def MhtmlGenerator.generate(uri)
     generateror = MhtmlGenerator.new
     return generateror.convert(uri)
@@ -26,8 +28,9 @@ class MhtmlGenerator
     @contents = {}
     @src = StringIO.new
     @boundary = "mimepart_#{Digest::MD5.hexdigest(Time.now.to_s)}"
-    @threads =[]
-    @queue = Queue.new
+    @threads  = []
+    @queue    = Queue.new
+    @conf     = { :base64_except=>["html"]}
   end
   def convert(filename_or_uri)
       f = open(filename_or_uri)
@@ -71,11 +74,12 @@ class MhtmlGenerator
       @src.puts "Content-Type: #{f.meta['content-type']}"
       @src.puts "Content-Id: #{Digest::MD5.hexdigest(filename_or_uri)}"
       @src.puts "Content-Location: #{filename_or_uri}"
-      #@src.puts "Content-Transfer-Encoding: 8bit"
-      @src.puts "Content-Transfer-Encoding: Base64"
+      @src.puts "Content-Transfer-Encoding: 8bit" if @conf[:base64_except].find("html")
+      @src.puts "Content-Transfer-Encoding: Base64" unless @conf[:base64_except].find("html")
       @src.puts ""
       #@src.puts html
-      @src.puts "#{Base64.encode64(html)}"
+      @src.puts "#{html}"                      if @conf[:base64_except].find("html")
+      #@src.puts "#{Base64.encode64(html)}" unless @conf[:base64_except].find("html")
       @src.puts ""
       self.attach_contents
       @src.puts "--#{@boundary}--"
@@ -106,7 +110,7 @@ class MhtmlGenerator
     @contents.each{|k,v| @queue.push k}
     #start download threads
     self.start_download_thread
-    # wait 
+    # wait until download finished.
     @threads.each{|t|t.join}
     @contents.each{|k,v|self.add_html_content(k)}
   end
