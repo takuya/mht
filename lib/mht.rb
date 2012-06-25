@@ -47,7 +47,7 @@ class MhtmlGenerator
       #imgs
       @parser.search('img').each{|i| 
           uri = i.attr('src');
-          uri = URI::join( filename_or_uri, uri).to_s
+          uri = join_uri( filename_or_uri, uri).to_s
           uid = Digest::MD5.hexdigest(uri)
           @contents[uid] = uri
           i.set_attribute('src',"cid:#{uid}")
@@ -55,7 +55,7 @@ class MhtmlGenerator
       #styles
       @parser.search('link[rel=stylesheet]').each{|i|
           uri = i.attr('href');
-          uri = URI::join( filename_or_uri, uri).to_s
+          uri = join_uri( filename_or_uri, uri)
           uid = Digest::MD5.hexdigest(uri)
           @contents[uid] = uri
           i.set_attribute('href',"cid:#{uid}")
@@ -64,14 +64,14 @@ class MhtmlGenerator
       @parser.search('script').map{ |i|
           next unless i.attr('src');
           uri = i.attr('src');
-          uri = URI::join( filename_or_uri, uri).to_s
+          uri = join_uri( filename_or_uri, uri)
           uid = Digest::MD5.hexdigest(uri)
           @contents[uid] = uri
           i.set_attribute('src',"cid:#{uid}")
       }
       @src.puts "--#{@boundary}"
       @src.puts "Content-Disposition: inline; filename=default.htm"
-      @src.puts "Content-Type: #{f.meta['content-type']}"
+      @src.puts "Content-Type: #{content_type(f)}"
       @src.puts "Content-Id: #{Digest::MD5.hexdigest(filename_or_uri)}"
       @src.puts "Content-Location: #{filename_or_uri}"
       @src.puts "Content-Transfer-Encoding: 8bit" if @conf[:base64_except].find("html")
@@ -86,6 +86,25 @@ class MhtmlGenerator
       @src.rewind
       return @src.read
   end
+  def join_uri(base_filename_or_uri, path)
+    stream = open(base_filename_or_uri)
+    joined = ""
+    if stream.is_a? File
+      joined = URI::join("file://#{base_filename_or_uri}", path)
+      joined = joined.to_s.gsub('file://','').gsub('file:','')
+    else
+      joined = URI::join(base_filename_or_uri, path)
+    end
+    return joined.to_s
+  end
+  def content_type(f)
+    if f.is_a? File
+      require 'mime/types'
+      return MIME::Types.type_for(f.path).first
+    else
+      return f.meta["content-type"]
+    end
+  end
   def start_download_thread(num=5)
     num.times{
       t = Thread.start{
@@ -94,8 +113,7 @@ class MhtmlGenerator
           v = @contents[k]
           next if v.class == Hash
           f = open(v)
-          meta = f.meta
-          @contents[k] = { :body=>f.read, :uri=> v, :content_type=> f.meta["content-type"] }
+          @contents[k] = { :body=>f.read, :uri=> v, :content_type=> content_type(f) }
         end
       }
       @threads.push t
